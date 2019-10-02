@@ -5,6 +5,7 @@ gap_penalty = -1  # indel
 match_award = 1  # match
 mismatch_penalty = -1  # mismatch
 
+#TODO check if the inputs match the signs expected
 
 class Align:
 
@@ -13,19 +14,47 @@ class Align:
         self.match = match
         self.mismatch = mismatch
         self.indel = indel
-        self.string_one = string_one
-        self.string_two = string_two
+        self.string_one = string_one.upper()
+        self.string_two = string_two.upper()
         self.score_matrix = np.zeros((len(string_one), len(string_two)))
 
-    # Global alignment algo
-    def needleman_wunsch(self):
-
+    def align_sequences(self):
         # Store length of two sequences in temp variables
         n = len(self.string_one)
         m = len(self.string_two)
 
         # Generate matrix of zeros to store scores at each iteration
-        score_matrix = np.zeros((len(self.string_two) + 1, len(self.string_one) + 1))
+        score_matrix = np.zeros((len(self.string_two) + 1, len(self.string_one) + 1), np.int)
+
+    # Local alignemnt algo
+    def smith_waterman(self, n, m, score_matrix):
+        # Fill out all other values in the score matrix
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                # Calculate the max score by checking the top, left, and diagonals
+                match = score_matrix[i - 1][j - 1] + self.compute_score(self.string_one[j - 1], self.string_two[i - 1])
+                delete = score_matrix[i - 1][j] + gap_penalty
+                insert = score_matrix[i][j - 1] + gap_penalty
+
+                # Record the maximum score from the three scenarios
+                score_matrix[i][j] = max(match, delete, insert)
+
+        print(score_matrix)
+
+        b, optimal_score = self.backtrack_sw(score_matrix)
+
+    def backtrack_sw(self, score_matrix):
+
+
+    # Global alignment algo
+    def needleman_wunsch(self, n , m, score_matrix):
+
+        # # Store length of two sequences in temp variables
+        # n = len(self.string_one)
+        # m = len(self.string_two)
+        #
+        # # Generate matrix of zeros to store scores at each iteration
+        # score_matrix = np.zeros((len(self.string_two) + 1, len(self.string_one) + 1), np.int)
 
         # Calculate score table
         # Fill out first column
@@ -49,18 +78,9 @@ class Align:
 
         print(score_matrix)
 
-        return self.backtrack(score_matrix)
+        return self.backtrack_nw(score_matrix)
 
-    # A function for determining the score between any two bases in alignment
-    def compute_score(self, a, b):
-        if a == b:
-            return match_award
-        elif a == '-' or b == '-':
-            return gap_penalty
-        else:
-            return mismatch_penalty
-
-    def backtrack(self, score_matrix):
+    def backtrack_nw(self, score_matrix):
 
         # Traceback and compute the alignment
 
@@ -71,6 +91,8 @@ class Align:
         # Start from the bottom right cell in matrix
         i = (len(self.string_two))
         j = len(self.string_one)
+
+        optimal_score = score_matrix[i][j]
 
         while i > 0 and j > 0:
             score_current = score_matrix[i][j]
@@ -96,7 +118,7 @@ class Align:
 
         # Finish tracing up to the top left cell
         while j > 0:
-            alignment_one += self.string_two[j - 1]
+            alignment_one += self.string_one[j - 1]
             alignment_two += '-'
             j -= 1
         while i > 0:
@@ -108,17 +130,37 @@ class Align:
         alignment_one = alignment_one[::-1]
         alignment_two = alignment_two[::-1]
 
-        return alignment_one, alignment_two
+        return alignment_one, alignment_two, optimal_score
+
+    # A function for determining the score between any two bases in alignment
+    def compute_score(self, a, b):
+        if a == b:
+            return match_award
+        elif a == '-' or b == '-':
+            print('here')
+            return gap_penalty
+        else:
+            return mismatch_penalty
 
 
 def main():
-    print("hi")
+    """
+    Output optimal score
+    number of solutions that achieve optimal score
+    actual alignment
+    """
 
-    align = Align('g', -1, -1, -1, 'ATTACA', 'ATGCT')
+    print("Results:")
 
-    output1, output2 = align.needleman_wunsch()
+    #align = Align('g', -1, -1, -1, 'ATTACA', 'ATGCT')
+    #TODO breaks with free and fire
+    align = Align('g', -1, -1, -1, 'CATCAT', 'CAT')
+    output1, output2, optimal_score = align.needleman_wunsch()
 
-    print('optimal alignments', output1 + "\n" + output2)
+    print('Optimal Score:', optimal_score)
+    print('Num Optimal Solutions:')
+    print('Actual Alignments:',"\n" + output1 + "\n" + output2)
+
 
 if __name__ == "__main__":
     main()
