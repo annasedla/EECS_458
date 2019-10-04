@@ -18,6 +18,7 @@ class Align:
         self.indel = indel
         self.string_one = string_one.upper()
         self.string_two = string_two.upper()
+        self.path = 0 # TODO remember to reset path
 
     def align_sequences(self):
         # Store length of two sequences in temp variables
@@ -51,7 +52,6 @@ class Align:
     #
     # def backtrack_sw(self, score_matrix):
 
-
     # Global alignment algo
     def needleman_wunsch(self, n, m, score_matrix):
 
@@ -83,32 +83,42 @@ class Align:
                 score_matrix[i][j] = max(match, delete, insert)
 
         print(score_matrix)
+        self.num_optimal_solution(len(self.string_two), len(self.string_one), score_matrix)
+        print('Num optimal', self.path)
         return self.backtrack_nw(score_matrix)
 
-    def num_optimal_solution(self, i, j, score_matrix, path):
-        if i == 1 and j == 1:
-            return path + 1
+    def num_optimal_solution(self, i, j, score_matrix):
+        if i == 0 and j == 0:
+            print('hi!')
+            self.path = self.path + 1
 
-        elif i == 1:
-            return self.num_optimal_solution(i, j - 1, score_matrix, path)
+        elif i == 0:
+            self.num_optimal_solution(i, j - 1, score_matrix)
 
-        elif j == 1:
-            return self.num_optimal_solution(i - 1, j, score_matrix, path)
+        elif j == 0:
+            self.num_optimal_solution(i - 1, j, score_matrix)
 
         else:
-            if (self.string_one(i) == self.string_two(i)) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + match_award):
-                return self.num_optimal_solution(i - 1, j - 1, score_matrix, path)
+            # print(len(self.string_two))
+            # print(i)
+            # print(len(self.string_one))
+            # print(j)
 
-            if (self.string_one(i) != self.string_two(i)) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + mismatch_penalty):
-                return self.num_optimal_solution(i - 1, j - 1, score_matrix, path)
+            if (self.string_one[j-1] == self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + match_award):
+                print('one')
+                self.num_optimal_solution(i - 1, j - 1, score_matrix)
+
+            if (self.string_one[j-1] != self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + mismatch_penalty):
+                print('two')
+                self.num_optimal_solution(i - 1, j - 1, score_matrix)
 
             if score_matrix[i][j] == score_matrix[i][j-1] + gap_penalty:
-                return self.num_optimal_solution(i, j-1, score_matrix, path)
+                print('three')
+                self.num_optimal_solution(i, j-1, score_matrix)
 
             if score_matrix[i][j] == score_matrix[i-1][j] + gap_penalty:
-                return self.num_optimal_solution(i-1, j, score_matrix, path)
-
-            return 0
+                print('four')
+                self.num_optimal_solution(i-1, j, score_matrix)
 
     def backtrack_nw(self, score_matrix):
 
@@ -185,7 +195,7 @@ def main():
     print("Results:")
 
     #align = Align('g', -1, -1, -1, 'ATTACA', 'ATGCT')
-    align = Align('g', -1, -1, -1, 'catcat', 'cat')
+    align = Align('g', -1, -1, -1, 'CCC', 'C')
     output1, output2, optimal_score = align.align_sequences()
 
     print('Optimal Score:', optimal_score)
