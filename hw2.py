@@ -1,9 +1,5 @@
 import numpy as np
 
-# constants to calculate scores
-gap_penalty = -4  # indel
-match_award = 5  # match
-mismatch_penalty = -3  # mismatch # TODO rewrite this
 
 # TODO check if the inputs match the signs expected
 
@@ -11,14 +7,13 @@ mismatch_penalty = -3  # mismatch # TODO rewrite this
 class Align:
 
     def __init__(self, alignment, match, mismatch, indel, string_one, string_two):
-        self.alignment = 'l'
-        self.path = 0
+        self.alignment = alignment
+        self.path = 0  # TODO remember to reset path
         self.match = match
         self.mismatch = mismatch
         self.indel = indel
         self.string_one = string_one.upper()
         self.string_two = string_two.upper()
-        self.path = 0  # TODO remember to reset path
 
     def align_sequences(self):
         # Store length of two sequences in temp variables
@@ -43,13 +38,22 @@ class Align:
             for j in range(1, n + 1):
                 # Calculate the max score by checking the top, left, and diagonals
                 match = score_matrix[i - 1][j - 1] + self.compute_score(self.string_one[j - 1], self.string_two[i - 1])
-                delete = score_matrix[i - 1][j] + gap_penalty
-                insert = score_matrix[i][j - 1] + gap_penalty
+                delete = score_matrix[i - 1][j] + self.indel
+                insert = score_matrix[i][j - 1] + self.indel
 
                 # Record the maximum score from the three scenarios
                 score_matrix[i][j] = max(match, delete, insert)
 
         print(score_matrix)
+
+        num_indices = np.where(score_matrix == score_matrix.max())
+
+        for i in range(0, len(num_indices[0])):
+            self.num_optimal_solution_sw(num_indices[0][i], num_indices[1][i], score_matrix)
+
+            print('Num optimal', self.path)
+
+        print('Final num optimal', self.path)
 
         return self.backtrack_sw(score_matrix)
 
@@ -81,19 +85,19 @@ class Align:
         # Calculate score table
         # Fill out first column
         for i in range(0, m + 1):
-            score_matrix[i][0] = gap_penalty * i
+            score_matrix[i][0] = self.indel * i
 
         # Fill out first row
         for j in range(0, n + 1):
-            score_matrix[0][j] = gap_penalty * j
+            score_matrix[0][j] = self.indel * j
 
         # Fill out all other values in the score matrix
         for i in range(1, m + 1):
             for j in range(1, n + 1):
                 # Calculate the max score by checking the top, left, and diagonals
                 match = score_matrix[i - 1][j - 1] + self.compute_score(self.string_one[j - 1], self.string_two[i - 1])
-                delete = score_matrix[i - 1][j] + gap_penalty
-                insert = score_matrix[i][j - 1] + gap_penalty
+                delete = score_matrix[i - 1][j] + self.indel
+                insert = score_matrix[i][j - 1] + self.indel
 
                 # Record the maximum score from the three scenarios
                 score_matrix[i][j] = max(match, delete, insert)
@@ -105,7 +109,6 @@ class Align:
 
     def num_optimal_solution(self, i, j, score_matrix):
         if i == 0 and j == 0:
-            print('hi!')
             self.path = self.path + 1
 
         elif i == 0:
@@ -120,21 +123,41 @@ class Align:
             # print(len(self.string_one))
             # print(j)
 
-            if (self.string_one[j-1] == self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + match_award):
-                print('one')
+            if (self.string_one[j-1] == self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + self.match):
                 self.num_optimal_solution(i - 1, j - 1, score_matrix)
 
-            if (self.string_one[j-1] != self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + mismatch_penalty):
-                print('two')
+            if (self.string_one[j-1] != self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + self.mismatch):
                 self.num_optimal_solution(i - 1, j - 1, score_matrix)
 
-            if score_matrix[i][j] == score_matrix[i][j-1] + gap_penalty:
-                print('three')
+            if score_matrix[i][j] == score_matrix[i][j-1] + self.indel:
                 self.num_optimal_solution(i, j-1, score_matrix)
 
-            if score_matrix[i][j] == score_matrix[i-1][j] + gap_penalty:
-                print('four')
+            if score_matrix[i][j] == score_matrix[i-1][j] + self.indel:
                 self.num_optimal_solution(i-1, j, score_matrix)
+
+    def num_optimal_solution_sw(self, i, j, score_matrix):
+        if i == 0 or j == 0:
+            self.path = self.path + 1
+
+        else:
+            # print(len(self.string_two))
+            # print(i)
+            # print(len(self.string_one))
+            # print(j)
+
+            if (self.string_one[j - 1] == self.string_two[i - 1]) and (
+                    score_matrix[i][j] == score_matrix[i - 1][j - 1] + self.match):
+                self.num_optimal_solution(i - 1, j - 1, score_matrix)
+
+            if (self.string_one[j - 1] != self.string_two[i - 1]) and (
+                    score_matrix[i][j] == score_matrix[i - 1][j - 1] + self.mismatch):
+                self.num_optimal_solution(i - 1, j - 1, score_matrix)
+
+            if score_matrix[i][j] == score_matrix[i][j - 1] + self.indel:
+                self.num_optimal_solution(i, j - 1, score_matrix)
+
+            if score_matrix[i][j] == score_matrix[i - 1][j] + self.indel:
+                self.num_optimal_solution(i - 1, j, score_matrix)
 
     def backtrack_nw(self, score_matrix):
 
@@ -164,12 +187,12 @@ class Align:
                 i -= 1
                 j -= 1
 
-            elif score_current == score_up + gap_penalty:
+            elif score_current == score_up + self.indel:
                 alignment_one += self.string_one[j - 1]
                 alignment_two += '-'
                 j -= 1
 
-            elif score_current == score_left + gap_penalty:
+            elif score_current == score_left + self.indel:
                 alignment_one += '-'
                 alignment_two += self.string_two[i - 1]
                 i -= 1
@@ -217,12 +240,12 @@ class Align:
                 i -= 1
                 j -= 1
 
-            elif score_current == score_up + gap_penalty:
+            elif score_current == score_up + self.indel:
                 alignment_one += self.string_one[j - 1]
                 alignment_two += '-'
                 j -= 1
 
-            elif score_current == score_left + gap_penalty:
+            elif score_current == score_left + self.indel:
                 alignment_one += '-'
                 alignment_two += self.string_two[i - 1]
                 i -= 1
@@ -248,12 +271,11 @@ class Align:
     # A function for determining the score between any two bases in alignment
     def compute_score(self, a, b):
         if a == b:
-            return match_award
+            return self.match
         elif a == '-' or b == '-':
-            print('here')
-            return gap_penalty
+            return self.indel
         else:
-            return mismatch_penalty
+            return self.mismatch
 
 
 def main():
@@ -265,14 +287,14 @@ def main():
 
     print("Results:")
 
-    #align = Align('g', -1, -1, -1, 'ATTACA', 'ATGCT')
-    align = Align('g', -1, -1, -1, 'aaaacccccgggg', 'cccgggaaccaacc')
+    #align = Align('g', 1, -1, -1, 'ATTACA', 'ATGCT')
+    align = Align('l', 1, -1, -1, 'catcat', 'cat')
     # output1, output2, optimal_score = align.align_sequences()
-    align.align_sequences()
+    output1, output2, optimal_score = align.align_sequences()
 
-    # print('Optimal Score:', optimal_score)
-    # print('Num Optimal Solutions:')
-    # print('Actual Alignments:',"\n" + output1 + "\n" + output2)
+    print('Optimal Score:', optimal_score)
+    print('Num Optimal Solutions:')
+    print('Actual Alignments:', "\n" + output1 + "\n" + output2)
 
 
 if __name__ == "__main__":
