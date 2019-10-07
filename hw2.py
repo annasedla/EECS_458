@@ -1,9 +1,6 @@
 import numpy as np
 
 
-# TODO check if the inputs match the signs expected
-
-
 class Align:
 
     def __init__(self):
@@ -19,8 +16,8 @@ class Align:
 
         # Set all the global variables
         self.alignment = alignment
-        self.string_one = string_one
-        self.string_two = string_two
+        self.string_one = string_one.upper()
+        self.string_two = string_two.upper()
         self.path = path
         self.match = match
         self.mismatch = mismatch
@@ -121,10 +118,12 @@ class Align:
             self.num_optimal_solution_nw(i - 1, j, score_matrix)
 
         else:
-            if (self.string_one[j-1] == self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + self.match):
+            if (self.string_one[j-1] == self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] +
+                                                                   self.match):
                 self.num_optimal_solution_nw(i - 1, j - 1, score_matrix)
 
-            if (self.string_one[j-1] != self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] + self.mismatch):
+            if (self.string_one[j-1] != self.string_two[i-1]) and (score_matrix[i][j] == score_matrix[i - 1][j - 1] +
+                                                                   self.mismatch):
                 self.num_optimal_solution_nw(i - 1, j - 1, score_matrix)
 
             if score_matrix[i][j] == score_matrix[i][j-1] + self.indel:
@@ -229,9 +228,45 @@ class Align:
 
 
 def main():
-    align = Align()
-    align.align_sequences('l', 'catcat', 'cat', 0, 1, -1, -1)
+
+    align = Align()  # make an instance of a class
+
+    alignment = ''
+    match = 0
+    mismatch = 0
+    indel = 0
+    string_one = ''
+    string_two = ''
+
+    filepath = 'test_input.txt'
+
+    with open(filepath) as fp:
+        line = fp.readline()
+        cnt = 1
+        while line:
+            if cnt == 1:
+                alignment = str(line.strip())
+
+            if cnt == 2:
+                current_line = line.strip().split(',')
+                match = int(current_line[0])
+                mismatch = int(current_line[1])
+                indel = int(current_line[2])
+
+            if cnt == 3:
+                current_line = line.strip().split(',')
+                string_one = current_line[0]
+                string_two = current_line[1]
+
+            line = fp.readline()
+            cnt += 1
+
+    align.align_sequences(alignment, string_one, string_two, match=match, mismatch=mismatch, indel=indel)
+    # align.align_sequences('l', 'catcat', 'cat', 0, 1, -1, -1)
 
 
 if __name__ == "__main__":
     main()
+
+# TODO clarify on input
+# TODO ask about output for local
