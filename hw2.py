@@ -4,6 +4,9 @@ import numpy as np
 class Align:
 
     def __init__(self):
+        """
+        Global variables
+        """
         self.alignment = ''
         self.path = 0
         self.match = 1
@@ -13,6 +16,17 @@ class Align:
         self.string_two = ''
 
     def align_sequences(self, alignment, string_one, string_two, path=0, match=1, mismatch=-1, indel=-1):
+        """
+        Method initially called
+        :param alignment: l or g
+        :param string_one: x
+        :param string_two: y
+        :param path: total bumber of optimal paths
+        :param match:
+        :param mismatch:
+        :param indel:
+        :return: nothing, but prints to the console
+        """
 
         # Set all the global variables
         self.alignment = alignment
@@ -39,6 +53,13 @@ class Align:
 
     # Global alignment algo
     def needleman_wunsch(self, n, m, score_matrix):
+        """
+        Global alignment
+        :param n: rows
+        :param m: columns
+        :param score_matrix: initial score matrix
+        :return: prints all the results
+        """
 
         # Calculate score table
         # Fill out first column
@@ -72,10 +93,17 @@ class Align:
         self.num_optimal_solution_nw(len(self.string_two), len(self.string_one), score_matrix)
 
         print('Number of optimal solutions:', self.path)
-        self.backtrack(score_matrix)
+        self.backtrack_nw(score_matrix)
 
     # Local alignemnt algo
     def smith_waterman(self, n, m, score_matrix):
+        """
+        Local alignment
+        :param n: rows
+        :param m: columns
+        :param score_matrix: initial score matrix
+        :return: prints all the results
+        """
 
         # Fill out all other values in the score matrix
         for i in range(1, m + 1):
@@ -86,7 +114,7 @@ class Align:
                 insert = score_matrix[i][j - 1] + self.indel
 
                 # Record the maximum score from the three scenarios
-                score_matrix[i][j] = max(match, delete, insert)
+                score_matrix[i][j] = max(match, delete, insert, 0)
 
         num_indices = np.where(score_matrix == score_matrix.max())
 
@@ -102,12 +130,17 @@ class Align:
         print("Score Matrix:")
         print(score_matrix)
 
-        self.num_optimal_solution_sw(len(self.string_two), len(self.string_one), score_matrix)
-
         print('Number of optimal solutions:', self.path)
-        self.backtrack(score_matrix)
+        self.backtrack_sw(score_matrix)
 
     def num_optimal_solution_nw(self, i, j, score_matrix):
+        """
+        Computes the number of total optimal paths for global alignment
+        :param i: initially length of string two
+        :param j: initially length of string one
+        :param score_matrix: finalized score matrix
+        :return: number of optimal paths
+        """
         if i == 0 and j == 0:
             self.path = self.path + 1
 
@@ -133,7 +166,15 @@ class Align:
                 self.num_optimal_solution_nw(i-1, j, score_matrix)
 
     def num_optimal_solution_sw(self, i, j, score_matrix):
-        if i == 0 or j == 0:
+        """
+        Computes the number of total optimal paths for smith waterman
+        :param i: initially length of string two
+        :param j: initially length of string one
+        :param score_matrix: finalized score matrix
+        :return: number of optimal paths
+        """
+
+        if score_matrix[i][j] == 0:
             self.path = self.path + 1
 
         else:
@@ -151,27 +192,21 @@ class Align:
             if score_matrix[i][j] == score_matrix[i - 1][j] + self.indel:
                 self.num_optimal_solution_sw(i - 1, j, score_matrix)
 
-    def backtrack(self, score_matrix):
+    def backtrack_nw(self, score_matrix):
+        """
+        Prints out the final string alignments
+        :param score_matrix: Matrix filled with values
+        :return: finalized string alignments
+        """
 
         # Traceback and compute the alignment
         # Create variables to store alignment
         alignment_one = ""
         alignment_two = ""
 
-        if self.alignment == 'g':
-            # Start from the bottom right cell in matrix
-            i, j = (len(self.string_two)), len(self.string_one)
-            optimal_score = score_matrix[i][j]
-
-        elif self.alignment == 'l':
-            # Start from the highest element in the matrix
-            i, j = np.unravel_index(score_matrix.argmax(), score_matrix.shape)
-            optimal_score = score_matrix.max()
-
-        else:
-            i, j = 0, 0
-            optimal_score = ''
-            print('Not a valid alignment symbol')
+        # Start from the bottom right cell in matrix
+        i, j = (len(self.string_two)), len(self.string_one)
+        optimal_score = score_matrix[i][j]
 
         while i > 0 and j > 0:
             score_current = score_matrix[i][j]
@@ -198,13 +233,61 @@ class Align:
                 alignment_two += self.string_two[i - 1]
                 i -= 1
 
-        if self.alignment == 'g':
-            # Finish tracing up to the top left cell
-            while j > 0:
+        # Finish tracing up to the top left cell
+        while j > 0:
+            alignment_one += self.string_one[j - 1]
+            alignment_two += '-'
+            j -= 1
+        while i > 0:
+            alignment_one += '-'
+            alignment_two += self.string_two[i - 1]
+            i -= 1
+
+        # reverse the sequences
+        alignment_one = alignment_one[::-1]
+        alignment_two = alignment_two[::-1]
+
+        print('String one:', alignment_one)
+        print('String two:', alignment_two)
+        print('Optimal score:', optimal_score)
+
+    def backtrack_sw(self, score_matrix):
+        """
+        Prints out the final string alignments
+        :param score_matrix: Matrix filled with values
+        :return: finalized string alignments
+        """
+
+        # Traceback and compute the alignment
+        # Create variables to store alignment
+        alignment_one = ""
+        alignment_two = ""
+
+        # Start from the highest element in the matrix
+        i, j = np.unravel_index(score_matrix.argmax(), score_matrix.shape)
+        optimal_score = score_matrix.max()
+
+        while score_matrix[i][j] != 0:
+            score_current = score_matrix[i][j]
+            score_diagonal = score_matrix[i - 1][j - 1]
+            score_up = score_matrix[i][j - 1]
+            score_left = score_matrix[i - 1][j]
+
+            # Check to figure out which cell the current score was calculated from,
+            # then update i and j to correspond to that cell.
+
+            if score_current == score_diagonal + self.compute_score(self.string_one[j - 1], self.string_two[i - 1]):
+                alignment_one += self.string_one[j - 1]
+                alignment_two += self.string_two[i - 1]
+                i -= 1
+                j -= 1
+
+            elif score_current == score_up + self.indel:
                 alignment_one += self.string_one[j - 1]
                 alignment_two += '-'
                 j -= 1
-            while i > 0:
+
+            elif score_current == score_left + self.indel:
                 alignment_one += '-'
                 alignment_two += self.string_two[i - 1]
                 i -= 1
@@ -213,12 +296,17 @@ class Align:
         alignment_one = alignment_one[::-1]
         alignment_two = alignment_two[::-1]
 
-        print('Alignment one:', alignment_one)
-        print('Alignment two:', alignment_two)
+        print('String one:', alignment_one)
+        print('String two:', alignment_two)
         print('Optimal score:', optimal_score)
 
-    # A function for determining the score between any two bases in alignment
     def compute_score(self, a, b):
+        """
+        A function for determining the score between any two bases in alignment
+        :param a: character one
+        :param b: character two
+        :return: whether or not they are the same
+        """
         if a == b:
             return self.match
         elif a == '-' or b == '-':
@@ -238,7 +326,7 @@ def main():
     string_one = ''
     string_two = ''
 
-    filepath = 'test_input.txt'
+    filepath = 'test_input.txt'  # place the correct filepath here
 
     with open(filepath) as fp:
         line = fp.readline()
@@ -254,19 +342,16 @@ def main():
                 indel = int(current_line[2])
 
             if cnt == 3:
-                current_line = line.strip().split(',')
-                string_one = current_line[0]
-                string_two = current_line[1]
+                string_one = str(line.strip())
+
+            if cnt == 4:
+                string_two = str(line.strip())
 
             line = fp.readline()
             cnt += 1
 
     align.align_sequences(alignment, string_one, string_two, match=match, mismatch=mismatch, indel=indel)
-    # align.align_sequences('l', 'catcat', 'cat', 0, 1, -1, -1)
 
 
 if __name__ == "__main__":
     main()
-
-# TODO clarify on input
-# TODO ask about output for local
